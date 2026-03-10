@@ -47,7 +47,6 @@ class ReadBeamRunInfo:
 
         n_tagger_group = float(target_run.get("act3"))
 
-        print(n_tagger_group)
 
         if (target_run.get("act5")=="out") or (target_run.get("act5")=="OUT"):
             there_is_ACT5 = False
@@ -323,7 +322,6 @@ class DetectorDB:
             else:
                 raise Exception(f"The material {material} is not recognised")
 
-            print("det: ", det, " material: ", material, "Thickness: ", layers[material], " m.")
 
         return layer_names, layer_thicknesses, layer_materials
 

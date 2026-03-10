@@ -1316,7 +1316,6 @@ class BeamAnalysis:
         
         if self.run_momentum < 0:
             self.df["is_proton"] = False
-            print(self.df["is_proton"], sum(self.df["is_proton"]==True))
             self.df["is_deuteron"] = False
             
         else:
@@ -2109,19 +2108,17 @@ class BeamAnalysis:
                     det2 = det2[0:4]
                     det2_name = f"{list_all_detectors[d+1][0:3]}{list_all_detectors[d+1][4:]}"
                     
-                print(det1_name, det2_name)
+           
                 half_thickness_det1 = det_module.get_total_thickness_m(det1_name)/2
                 half_thickness_det2 = det_module.get_total_thickness_m(det2_name)/2
                 #account for the air gap between detectors
                 distance_to_next_det = det_module.distance_m(det1, det2) - half_thickness_det1 - half_thickness_det2
-                print(det_module.distance_m(det1, det2), half_thickness_det1, half_thickness_det2)
+                
             else:
                 distance_to_next_det = 0
                
             
             gap_name = f"{det1}_{det2}_air"
-            
-            print(f"The air gap {gap_name} is {distance_to_next_det*1e2} cm")
 
             array_layers_thickness.extend(all_layers_thickness)
             array_layers_material.extend(all_layers_material)
@@ -3019,7 +3016,7 @@ class BeamAnalysis:
      
     
 
-        if sum(self.df["is_proton"]==True) > 100 :
+        if sum(self.df["is_proton"]==True) > 20 :
             
             momentum_points_proton = np.linspace(self.run_momentum * 0.7, 1900,48)
             #get the nominal TOF for protons
@@ -3123,7 +3120,7 @@ class BeamAnalysis:
 
 
         
-        if sum(self.df["is_deuteron"]==True) > 100 :
+        if sum(self.df["is_deuteron"]==True) > 20 :
             
             #we cannot go too low momentum, otherwise unphysical... 
             momentum_points_deuteron = np.linspace(0.75 * abs(self.run_momentum), 1.4 * abs(self.run_momentum),12)
@@ -3319,7 +3316,7 @@ class BeamAnalysis:
         self.df.loc[mask_pion, "final_momentum_error"] = mom_err
 
         
-        if sum(self.df["is_proton"]) > 100:
+        if sum(self.df["is_proton"]) > 20:
             mom, mom_err = self.extrapolate_trigger_momentum(momentum_points_proton, proton_tof, trigger_proton_tof, electron_tof_std)
 
             self.df.loc[mask_proton, "initial_momentum"] = mom
@@ -3330,7 +3327,7 @@ class BeamAnalysis:
             self.df.loc[mask_proton, "final_momentum"] = mom
             self.df.loc[mask_proton, "final_momentum_error"] = mom_err
             
-        if sum(self.df["is_deuteron"]) > 100:
+        if sum(self.df["is_deuteron"]) > 20:
             mom, mom_err = self.extrapolate_trigger_momentum(momentum_points_deuteron, deuteron_tof, trigger_deuteron_tof, electron_tof_std)
 
             self.df.loc[mask_deuteron, "initial_momentum"] = mom
@@ -3409,7 +3406,7 @@ class BeamAnalysis:
         
         
         #Protons:
-        if sum(self.df["is_proton"]) > 100:
+        if sum(self.df["is_proton"]) > 20:
             f_p = n_p/len(self.df["is_proton"])
             ax.hist(
                 self.df["initial_momentum"][self.df["is_proton"] == 1],
@@ -3432,7 +3429,7 @@ class BeamAnalysis:
             
             
         #Deuterons:
-        if sum(self.df["is_deuteron"]) > 100:
+        if sum(self.df["is_deuteron"]) > 20:
             f_D = n_D/len(self.df["is_deuteron"])
             ax.hist(
                 self.df["initial_momentum"][self.df["is_deuteron"] == 1],
@@ -3557,7 +3554,7 @@ class BeamAnalysis:
         
         
         #Protons:
-        if sum(self.df["is_proton"]) > 100:
+        if sum(self.df["is_proton"]) > 20:
             f_p = n_p/len(self.df["is_proton"])
             ax.hist(
                 self.df["final_momentum"][self.df["is_proton"] == 1],
@@ -3580,7 +3577,7 @@ class BeamAnalysis:
             
             
         #Deuterons:
-        if sum(self.df["is_deuteron"]) > 100:
+        if sum(self.df["is_deuteron"]) > 20:
             f_D = n_D/len(self.df["is_deuteron"])
             ax.hist(
                 self.df["final_momentum"][self.df["is_deuteron"] == 1],
@@ -3675,7 +3672,7 @@ class BeamAnalysis:
         
         
         there_is_proton = False
-        if sum(self.df["is_proton"]) > 100:
+        if sum(self.df["is_proton"]) > 20:
             there_is_proton = True
         #Define the bounds inside which we will attempt the fits 
         if self.run_momentum > 600:
@@ -3762,8 +3759,7 @@ class BeamAnalysis:
         
         h_mu_t0t4, _ = np.histogram(self.df["tof_t0t4_corr"][self.df["is_muon"]==1], bins = bins_tof_t0t4)
         
-        print(h_mu_t0t4)
-        print(self.df["tof_t0t4_corr"][self.df["is_muon"]==1])
+       
         popt_mu_t0t4, pcov_t0t4 = fit_gaussian(h_mu_t0t4, bin_centers_t0t4)
         
         h_pi_t0t4, _ = np.histogram(self.df["tof_t0t4_corr"][self.df["is_pion"]==1], bins = bins_tof_t0t4)
@@ -4607,7 +4603,7 @@ class BeamAnalysis:
             df_pot = pd.read_csv(f"/eos/experiment/wcte/user_data/fiorenti/nxcals/run_{self.run_number}_pot.csv", header = 0)
         except:
             return 0
-        print(df_pot)
+    
         
         
 #         if len(df_pot) != len(spill_index):
@@ -4615,11 +4611,10 @@ class BeamAnalysis:
 #             raise Error
                   
         n_pot_per_trigger = np.array(df_pot["POT0"])
-        
-        print(n_pot_per_trigger)
+
         n_pot_per_trigger = n_pot_per_trigger[0:len(spill_index)]
         
-        print(number_e_per_spill, n_pot_per_trigger, number_e_per_spill/n_pot_per_trigger)
+
         
 
         #decide that there are a bin for each ten spills
