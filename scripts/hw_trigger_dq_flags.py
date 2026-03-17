@@ -175,7 +175,7 @@ if __name__ == "__main__":
                             raise Exception("PMTs with timing constants do not match between files in the same run")
                                         
                     #construct the good wcte pmt list
-                    good_wcte_pmts = np.array(list(set(pmts_with_timing_constant) & set(slow_control_stable_channels)) - set(manually_masked_pmts))
+                    good_wcte_pmts = list((set(pmts_with_timing_constant) & set(slow_control_stable_channels)) - set(manually_masked_pmts))
                     
                     # Construct output path
                     base = os.path.splitext(os.path.basename(readout_window_file_name))[0]
@@ -302,7 +302,7 @@ if __name__ == "__main__":
     bad_hit_pct  = 100.0 * run_total_bad_hits  / run_total_hits  if run_total_hits  else 0.0
 
     metrics = {
-        "n_good_pmt_channels": int(good_wcte_pmts),
+        "n_good_pmt_channels": len(good_wcte_pmts),
         "n_triggers":          int(run_total_triggers),
         "n_bad_triggers":      int(run_total_bad_triggers),
         "bad_trig_pct":        round(bad_trig_pct, 2),
