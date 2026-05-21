@@ -140,118 +140,100 @@ class BeamSelection:
     # ------------------------------------------------------------------
 
     @classmethod
-    def electron(cls, act_eveto_cut, proton_tof_cut=0):
+    def electron(cls, act_eveto_spec, proton_tof_cut=0, extra_cuts=None):
         """
         Electrons: fast particles (below proton TOF) that are above threshold
         in the upstream ACT (act_eveto), which only electrons trigger at most momenta.
 
         Parameters
         ----------
-        act_eveto_cut  : float  charge threshold in the upstream ACT [pC]
+        act_eveto_spec : list   cut specification [variable, operator, value],
+                                e.g. ["act_eveto", ">", threshold]
         proton_tof_cut : float  TOF value separating fast from slow particles [ns]
                                 set to 0 if TOF separation is not available
+        extra_cuts     : list of [variable, operator, value] specs, optional
         """
         sel = cls("electron")
         _add_fast_particle_cut(sel, proton_tof_cut)
-        sel.add(Cut(
-            name      = "act_eveto_above_threshold",
-            variable  = "vme_act_eveto",
-            func      = Cut.greater_than(act_eveto_cut),
-            threshold = act_eveto_cut,
-            direction = "above",
-        ))
+        sel.add(_parse_cut_spec(act_eveto_spec))
+        if extra_cuts:
+            for spec in extra_cuts:
+                sel.add(_parse_cut_spec(spec))
         return sel
 
     @classmethod
-    def muon(cls, act_eveto_cut, act_tagger_cut, proton_tof_cut=0):
+    def muon(cls, act_eveto_spec, act_tagger_spec, proton_tof_cut=0, extra_cuts=None):
         """
         Muons: fast particles, below threshold in the upstream ACT (act_eveto),
         and above threshold in the downstream ACT (act_tagger).
 
         Parameters
         ----------
-        act_eveto_cut  : float  upstream ACT charge threshold [pC]
-        act_tagger_cut : float  downstream ACT charge threshold [pC]
-        proton_tof_cut : float  TOF value separating fast from slow particles [ns]
-                                set to 0 if TOF separation is not available
+        act_eveto_spec  : list   cut specification [variable, operator, value],
+                                 e.g. ["act_eveto", "<", threshold]
+        act_tagger_spec : list   cut specification [variable, operator, value],
+                                 e.g. ["act_tagger", ">", threshold]
+        proton_tof_cut  : float  TOF value separating fast from slow particles [ns]
+                                 set to 0 if TOF separation is not available
+        extra_cuts      : list of [variable, operator, value] specs, optional
+                          e.g. [["mu_tag_total", ">", mu_tag_cut]]
         """
         sel = cls("muon")
         _add_fast_particle_cut(sel, proton_tof_cut)
-        sel.add(Cut(
-            name      = "act_eveto_below_threshold",
-            variable  = "vme_act_eveto",
-            func      = Cut.less_than(act_eveto_cut),
-            threshold = act_eveto_cut,
-            direction = "below",
-        ))
-        sel.add(Cut(
-            name      = "act_tagger_above_threshold",
-            variable  = "vme_act_tagger",
-            func      = Cut.greater_than(act_tagger_cut),
-            threshold = act_tagger_cut,
-            direction = "above",
-        ))
+        sel.add(_parse_cut_spec(act_eveto_spec))
+        sel.add(_parse_cut_spec(act_tagger_spec))
+        if extra_cuts:
+            for spec in extra_cuts:
+                sel.add(_parse_cut_spec(spec))
         return sel
 
     @classmethod
-    def kaon(cls, act_eveto_cut, act_tagger_cut, proton_tof_cut=0):
+    def kaon(cls, act_eveto_spec, act_tagger_spec, proton_tof_cut=0, extra_cuts=None):
         """
         Kaons: fast particles, below threshold in the upstream ACT (act_eveto),
         and above threshold in the downstream ACT (act_tagger).
 
         Parameters
         ----------
-        act_eveto_cut  : float  upstream ACT charge threshold [pC]
-        act_tagger_cut : float  downstream ACT charge threshold [pC]
-        proton_tof_cut : float  TOF value separating fast from slow particles [ns]
-                                set to 0 if TOF separation is not available
+        act_eveto_spec  : list   cut specification [variable, operator, value],
+                                 e.g. ["act_eveto", "<", threshold]
+        act_tagger_spec : list   cut specification [variable, operator, value],
+                                 e.g. ["act_tagger", ">", threshold]
+        proton_tof_cut  : float  TOF value separating fast from slow particles [ns]
+                                 set to 0 if TOF separation is not available
+        extra_cuts      : list of [variable, operator, value] specs, optional
         """
         sel = cls("kaon")
         _add_fast_particle_cut(sel, proton_tof_cut)
-        sel.add(Cut(
-            name      = "act_eveto_below_threshold",
-            variable  = "vme_act_eveto",
-            func      = Cut.less_than(act_eveto_cut),
-            threshold = act_eveto_cut,
-            direction = "below",
-        ))
-        sel.add(Cut(
-            name      = "act_tagger_above_threshold",
-            variable  = "vme_act_tagger",
-            func      = Cut.greater_than(act_tagger_cut),
-            threshold = act_tagger_cut,
-            direction = "above",
-        ))
+        sel.add(_parse_cut_spec(act_eveto_spec))
+        sel.add(_parse_cut_spec(act_tagger_spec))
+        if extra_cuts:
+            for spec in extra_cuts:
+                sel.add(_parse_cut_spec(spec))
         return sel
 
     @classmethod
-    def pion(cls, act_eveto_cut, act_tagger_cut, proton_tof_cut=0):
+    def pion(cls, act_eveto_spec, act_tagger_spec, proton_tof_cut=0, extra_cuts=None):
         """
         Pions: fast particles, below threshold in both ACTs.
 
         Parameters
         ----------
-        act_eveto_cut  : float  upstream ACT charge threshold [pC]
-        act_tagger_cut : float  downstream ACT charge threshold [pC]
-        proton_tof_cut : float  TOF value separating fast from slow particles [ns]
-                                set to 0 if TOF separation is not available
+        act_eveto_spec  : list   cut specification [variable, operator, value],
+                                 e.g. ["act_eveto", "<", threshold]
+        act_tagger_spec : list   cut specification [variable, operator, value],
+                                 e.g. ["act_tagger", "<", threshold]
+        proton_tof_cut  : float  TOF value separating fast from slow particles [ns]
+                                 set to 0 if TOF separation is not available
+        extra_cuts      : list of [variable, operator, value] specs, optional
         """
         sel = cls("pion")
         _add_fast_particle_cut(sel, proton_tof_cut)
-        sel.add(Cut(
-            name      = "act_eveto_below_threshold",
-            variable  = "vme_act_eveto",
-            func      = Cut.less_than(act_eveto_cut),
-            threshold = act_eveto_cut,
-            direction = "below",
-        ))
-        sel.add(Cut(
-            name      = "act_tagger_below_threshold",
-            variable  = "vme_act_tagger",
-            func      = Cut.less_than(act_tagger_cut),
-            threshold = act_tagger_cut,
-            direction = "below",
-        ))
+        sel.add(_parse_cut_spec(act_eveto_spec))
+        sel.add(_parse_cut_spec(act_tagger_spec))
+        if extra_cuts:
+            for spec in extra_cuts:
+                sel.add(_parse_cut_spec(spec))
         return sel
 
     @classmethod
@@ -301,10 +283,48 @@ def _add_fast_particle_cut(sel, proton_tof_cut):
         ))
 
 
+def _parse_cut_spec(spec):
+    """
+    Parse a [variable, operator, value] triplet into a Cut object.
+    The variable name is resolved via _VARIABLE_ALIASES, or auto-prefixed
+    with 'vme_' if not found in the alias table.
+    Supported operators: '>', '<', '>=', '<='
+    """
+    if not (isinstance(spec, (list, tuple)) and len(spec) == 3):
+        raise ValueError(f"Cut spec must be [variable, operator, value], got: {spec!r}")
+    var, op, value = spec
+    col = _VARIABLE_ALIASES.get(var, f"vme_{var}" if not var.startswith("vme_") else var)
+    if op == ">":
+        func, direction = Cut.greater_than(value), "above"
+    elif op == "<":
+        func, direction = Cut.less_than(value), "below"
+    elif op == ">=":
+        func, direction = (lambda v: lambda x: x >= v)(value), "above"
+    elif op == "<=":
+        func, direction = (lambda v: lambda x: x <= v)(value), "below"
+    else:
+        raise ValueError(f"Unsupported operator {op!r}. Use '>', '<', '>=', or '<='.")
+    return Cut(
+        name      = f"{var}_{direction}_threshold",
+        variable  = col,
+        func      = func,
+        threshold = value,
+        direction = direction,
+    )
+
+
+_VARIABLE_ALIASES = {
+    "act_eveto":    "vme_act_eveto",
+    "act_tagger":   "vme_act_tagger",
+    "tof":          "vme_tof_corr",
+    "mu_tag_total": "vme_mu_tag_total",
+}
+
 _VARIABLE_UNITS = {
-    "vme_act_eveto":  "PE",
-    "vme_act_tagger": "PE",
-    "vme_tof_corr":   "ns",
+    "vme_act_eveto":    "PE",
+    "vme_act_tagger":   "PE",
+    "vme_tof_corr":     "ns",
+    "vme_mu_tag_total": "a.u.",
 }
 
 
@@ -370,7 +390,14 @@ class SelectionMonitor:
             if len(values) == 0:
                 continue
             if self._edges[var] is None:
-                lo, hi = float(values.min() * 0.8), float(values.max() * 1.2)
+                if var == "vme_tof_corr":
+                    # For TOF, use the cut threshold to set the histogram range,
+                    # so we can see the separation between fast and slow particles.
+                
+                    lo, hi = float(10.0), float(min(values.max()*1.8, 45))
+                else:
+                    lo, hi = float(values.min() * 0.8), float(values.max() * 1.2)
+                
                 if lo == hi:
                     lo, hi = lo - 1.0, hi + 1.0
                 self._edges[var]  = np.linspace(lo, hi, self._bins + 1)
