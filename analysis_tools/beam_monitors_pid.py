@@ -384,16 +384,29 @@ class BeamAnalysis:
         }
         
 
-        # if self.run_momentum > 0:
+        # here we define a factor*nominal momentum which sets where the cut lines will fall for the ehavier particles, they should be well between positions of TOF peaks
+        if abs(self.run_momentum) > 1800:
+            factor = 1.05
+        elif abs(self.run_momentum) > 1400:
+            factor = 1.075
+        elif abs(self.run_momentum) > 1000:
+            factor = 1.1
+        else:
+            factor = 1.15
+
+
+        
+
+
         #Define the cut lines in terms of the expected tof
-        _, _, proton_tof_cut_array, _, _ =self.give_theoretical_TOF("Protons", np.array([abs(self.run_momentum) * 1.15])) #the smallest TOF value for a proton, considered to be the TOF at 110% of the theoretical proton momentum
-        _, _, deuteron_tof_cut_array, _, _ =self.give_theoretical_TOF("Deuteron", np.array([abs(self.run_momentum) * 1.15])) #the smallest TOF value for a deuteron, considered to be the TOF at 110% of the theoretical proton momentum
+        _, _, proton_tof_cut_array, _, _ =self.give_theoretical_TOF("Protons", np.array([abs(self.run_momentum) * factor])) #the smallest TOF value for a proton, considered to be the TOF at 110% of the theoretical proton momentum
+        _, _, deuteron_tof_cut_array, _, _ =self.give_theoretical_TOF("Deuteron", np.array([abs(self.run_momentum) * factor])) #the smallest TOF value for a deuteron, considered to be the TOF at 110% of the theoretical proton momentum
 
         #Implement a TOF cut based on theoretical values for Helium3 as well
-        _, _, helium3_tof_cut_array, _, _ =self.give_theoretical_TOF("Helium3", np.array([abs(self.run_momentum) * 2 * 1.15])) #the smallest TOF value for a helium3, considered to be the TOF at 110% of the theoretical helium3 momentum which is twice the beamline momentum since the helium3 has twice the charge
+        _, _, helium3_tof_cut_array, _, _ =self.give_theoretical_TOF("Helium3", np.array([abs(self.run_momentum) * 2 * factor])) #the smallest TOF value for a helium3, considered to be the TOF at 110% of the theoretical helium3 momentum which is twice the beamline momentum since the helium3 has twice the charge
 
 
-        electron_tof_offset = 0.67 #ns
+        electron_tof_offset = 2*0.626 #ns
 
         self.proton_tof_cut = proton_tof_cut_array[0] - electron_tof_offset
         self.deuteron_tof_cut = deuteron_tof_cut_array[0] - electron_tof_offset
@@ -1036,7 +1049,13 @@ class BeamAnalysis:
         #automatically find the middle of the least populated bin within 4 and 15 PE
         bin_centers = 0.5 * (bins[:-1] + bins[1:])
         x_min = 0.2
-        x_max = 23
+
+        if abs(self.run_momentum) < 800:
+            x_max = 23
+        elif abs(self.run_momentum) < 1200:
+            x_max = 15
+        else:
+            x_max = 7
         mask = (bin_centers >= x_min) & (bin_centers <= x_max)
         # Find the bin index with the minimum count in that range
         min_index = np.argmin(h[mask])
@@ -1554,7 +1573,7 @@ class BeamAnalysis:
 
             ax.set_yscale("log")
             # ax.set_xlim(0, 80)
-            ax.set_xlabel("ACT35 charge (PE)")
+            ax.set_xlabel("ACT35 charge (act_tagger) (PE)")
             ax.set_ylabel("Number of triggers")
             ax.legend()
             
@@ -2544,9 +2563,9 @@ class BeamAnalysis:
         self.particle_mom_final_mean_t0t4_err_plus  = {"electron": 0,"muon": 0,"pion": 0,"proton": 0,"deuteron":0,"helium3":0}
 
         #Make the TOF error a constant fraction of the sigma so the electron TOF uncertainty is 0.05ns (it should be the smallest)
-        factor_uncertainty = 0.05/self.particle_tof_std["electron"]
+        factor_uncertainty = max(0.05/self.particle_tof_std["electron"], 1)
 
-        factor_uncertainty_t0t4 = 0.05/self.particle_tof_t0t4_std["electron"]
+        factor_uncertainty_t0t4 = max(0.05/self.particle_tof_t0t4_std["electron"], 1)
 
         for particle in ["Muons", "Pions", "Protons", "Deuteron", "Helium3"]:
 
@@ -2564,13 +2583,13 @@ class BeamAnalysis:
                     momentum_guess = np.linspace(190, 2000, 56)
 
                 elif particle == "Protons":
-                    momentum_guess = np.linspace(350, 1900, 66)
+                    momentum_guess = np.linspace(350, 2200, 66)
 
                 elif particle == "Deuteron":
-                    momentum_guess = np.linspace(650, 1900, 66)
+                    momentum_guess = np.linspace(650, 2200, 66)
 
                 elif particle == "Helium3":
-                    momentum_guess = np.linspace(850, 1900, 36)
+                    momentum_guess = np.linspace(850, 4300, 66)
 
                 initial_momentum_th, final_momentum_th, T0T1_TOF_th, T0T4_TOF_th, T4T1_TOF_th = \
                     self.give_theoretical_TOF(particle, momentum_guess)
@@ -3062,7 +3081,7 @@ class BeamAnalysis:
         #     ax.hist(self.df["tof_corr"][self.df["is_deuteron"]==1], bins = bins_tof, histtype = "step", label = f"Deuterons: tof = {mean:.2f} "+ r"$\pm$"+ f" {std:.2f} ns")
 
             
-        if sum(self.df["is_helium3"])>20:
+        if sum(self.df["is_helium3"])>5:
             
             try:
                 h_He3, _ = np.histogram(self.df["tof_corr"][self.df["is_helium3"]==1], bins = bins_tof)
@@ -3100,9 +3119,9 @@ class BeamAnalysis:
         #add the proton, deuteron and deuterium cut lines as shaded areas:
         if abs(self.run_momentum) > 350:
             try:
-                ax.axvline(x=self.proton_tof_cut, color='red', linestyle='--', linewidth=2, label=f'Proton cut: {self.proton_tof_cut:.2f} ns')
-                ax.axvline(x=self.deuteron_tof_cut, color='purple', linestyle='--', linewidth=2, label=f'Deuteron cut: {self.deuteron_tof_cut:.2f} ns')
-                ax.axvline(x=self.helium3_tof_cut, color='brown', linestyle='--', linewidth=2, label=f'Helium3 cut: {self.helium3_tof_cut:.2f} ns')
+                ax.axvline(x=self.proton_tof_cut+t0, color='red', linestyle='--', linewidth=2, label=f'Proton cut: {self.proton_tof_cut+t0:.2f} ns')
+                ax.axvline(x=self.deuteron_tof_cut+t0, color='purple', linestyle='--', linewidth=2, label=f'Deuteron cut: {self.deuteron_tof_cut+t0:.2f} ns')
+                ax.axvline(x=self.helium3_tof_cut+t0, color='brown', linestyle='--', linewidth=2, label=f'Helium3 cut: {self.helium3_tof_cut+t0:.2f} ns')
             except: 
                 print("TOF cuts for heavier particles not defined or nans, not plotting them")
 
@@ -3147,8 +3166,8 @@ class BeamAnalysis:
             ax.hist(self.df_goodT4["tof_t0t4_corr"][self.df_goodT4["is_deuteron"]==1], bins = bins_tof_t0t4, histtype = "step", label = f"Deuterons: tof = {popt_D_t0t4[1]:.2f} "+ r"$\pm$"+ f" {popt_D_t0t4[2]:.2f} ns")
            
         
-            
-        if sum(self.df_goodT4["is_helium3"])>20:
+        popt_He3_t0t4 = [0, 0, 0]
+        if sum(self.df_goodT4["is_helium3"])>5:
             
             try:
                 h_He3_t0t4, _ = np.histogram(self.df_goodT4["tof_t0t4_corr"][self.df_goodT4["is_helium3"]==1], bins = bins_tof_t0t4)
@@ -3158,9 +3177,11 @@ class BeamAnalysis:
                 
                 
             except:
-                popt_He3 = [0, 0, 0]
+                
                 mean = self.df_goodT4["tof_t0t4_corr"][self.df_goodT4["is_helium3"]==1].mean()
                 std = self.df_goodT4["tof_t0t4_corr"][self.df_goodT4["is_helium3"]==1].std()
+
+                popt_He3_t0t4 = [0, mean, std]
                 ax.hist(self.df_goodT4["tof_t0t4_corr"][self.df_goodT4["is_helium3"]==1], bins = bins_tof, histtype = "step", label = f"Helium3 nuclei: tof = {mean:.2f} "+ r"$\pm$"+ f" {std:.2f} ns")
 
             
@@ -3213,7 +3234,7 @@ class BeamAnalysis:
             "pion": popt_pi[1],
             "proton": popt_p[1] if there_is_proton else 0,
             "deuteron": popt_D[1] if sum(self.df["is_deuteron"])>20 else 0,
-            "helium3": popt_He3[1] if sum(self.df["is_helium3"])>20 else 0,
+            "helium3": popt_He3[1] if sum(self.df["is_helium3"])>5 else 0,
        
         }
         
@@ -3223,7 +3244,7 @@ class BeamAnalysis:
             "pion": popt_pi[2],
             "proton": popt_p[2] if there_is_proton else 0,
             "deuteron": popt_D[2] if sum(self.df["is_deuteron"])>20 else 0,
-            "helium3": popt_He3[2] if sum(self.df["is_helium3"])>20 else 0,
+            "helium3": popt_He3[2] if sum(self.df["is_helium3"])>5 else 0,
           
         }
         
@@ -3233,7 +3254,7 @@ class BeamAnalysis:
             "pion": popt_pi[2]/np.sqrt(sum(self.df["is_pion"])),
             "proton": popt_p[2]/np.sqrt(sum(self.df["is_proton"])) if there_is_proton else 0,
             "deuteron": popt_D[2]/np.sqrt(sum(self.df["is_deuteron"])) if sum(self.df["is_deuteron"])>20 else 0,
-            "helium3": popt_He3[2]/np.sqrt(sum(self.df["is_helium3"])) if sum(self.df["is_helium3"])>20 else 0,
+            "helium3": popt_He3[2]/np.sqrt(sum(self.df["is_helium3"])) if sum(self.df["is_helium3"])>5 else 0,
            
             
         }
@@ -3245,7 +3266,7 @@ class BeamAnalysis:
             "pion": popt_pi_t0t4[1],
             "proton": mean_proton_T0T4_tof if there_is_proton else 0,
             "deuteron": popt_D_t0t4[1] if sum(self.df["is_deuteron"])>20 else 0,
-            "helium3": popt_He3_t0t4[1] if sum(self.df["is_helium3"])>20 else 0,
+            "helium3": popt_He3_t0t4[1] if sum(self.df["is_helium3"])>5 else 0,
           
         }
         
@@ -3265,7 +3286,7 @@ class BeamAnalysis:
             "pion": popt_pi_t0t4[2]/np.sqrt(sum(self.df["is_pion"])),
             "proton": std_proton_T0T4_tof/np.sqrt(sum(self.df["is_proton"])) if there_is_proton else 0,
             "deuteron": popt_D_t0t4[2]/np.sqrt(sum(self.df["is_deuteron"])) if sum(self.df["is_deuteron"])>20 else 0,
-            "helium3": popt_He3_t0t4[2]/np.sqrt(sum(self.df["is_helium3"])) if sum(self.df["is_helium3"])>20 else 0,
+            "helium3": popt_He3_t0t4[2]/np.sqrt(sum(self.df["is_helium3"])) if sum(self.df["is_helium3"])> 5 else 0,
            
             
         }
@@ -3568,7 +3589,7 @@ class BeamAnalysis:
             _ = ax.hist(self.df["total_TOF_charge"][self.df["is_proton"] == 1], bins = bins, label = 'proton', histtype = "step")
         if sum(self.df["is_deuteron"] == 1) >10:
             _ = ax.hist(self.df["total_TOF_charge"][self.df["is_deuteron"] == 1], bins = bins, label = 'deuteron', histtype = "step")
-        if sum(self.df["is_helium3"] == 1) >10:
+        if sum(self.df["is_helium3"] == 1) >5:
             _ = ax.hist(self.df["total_TOF_charge"][self.df["is_helium3"] == 1], bins = bins, label = 'helium3', histtype = "step")
 
         ax.legend()
@@ -3767,6 +3788,8 @@ class BeamAnalysis:
                 "act_tagger_cut":np.array([self.act35_cut_pi_mu], dtype=np.float64),
                 "proton_tof_cut":np.array([self.proton_tof_cut], dtype=np.float64),
                 "deuteron_tof_cut":np.array([self.deuteron_tof_cut], dtype=np.float64),
+
+                "helium3_tof_cut":np.array([self.helium3_tof_cut], dtype=np.float64),
                 "mu_tag_cut": np.array([self.mu_tag_cut], dtype=np.int64),
                 "using_mu_tag_cut": np.array([self.using_mu_tag_cut], dtype=np.float64),
                 
@@ -4113,7 +4136,7 @@ class BeamAnalysis:
 
         min_number = max(max(number_e_per_spill), max(number_mu_per_spill), max(number_pi_per_spill), max(number_p_per_spill), max(number_D_per_spill), max(number_3He_per_spill))/min(n_pot_per_trigger)*1.5
 
-        max_limit = min(min_number, abs(self.run_momentum)**2 * 25/770**2)
+        max_limit = abs(self.run_momentum)**2 * 25/770**2
 
         n_bins = np.linspace(0, max_limit, 100)
         n_bins_narrow = np.linspace(0, max_limit, 300)
@@ -4121,54 +4144,63 @@ class BeamAnalysis:
         
         
         bin_centers = (n_bins[1:]+n_bins[:-1])/2
+
+        min_fraction = 0.05 
+
+        if max(number_e_per_spill) > min_fraction:
+
         
-        h_e, _, _ = ax.hist(number_e_per_spill/n_pot_per_trigger, bins = n_bins, label = "Electrons", color = "blue", histtype = "step")
-        try:
-            popt, pcov = fit_gaussian(h_e, bin_centers)
-            plt.plot(n_bins_narrow, gaussian(n_bins_narrow, *popt), '--', color = "blue", label = f"Gaussian fit: mean {popt[1]:.2f}, std {popt[2]:.2f}")
-        except:
-            popt  = [0, 0, 0]
-        
-        
-        
-        h_mu, _, _ = ax.hist(number_mu_per_spill/n_pot_per_trigger, bins = n_bins, label = "Muons", color = "orange", histtype = "step")
-        try:
-            popt, pcov = fit_gaussian(h_mu, bin_centers)
-            plt.plot(n_bins_narrow, gaussian(n_bins_narrow, *popt), '--', color = "orange", label = f"Gaussian fit: mean {popt[1]:.2f}, std {popt[2]:.2f}")
-        
-        except:
-            popt  = [0, 0, 0]
-        
-        h_pi, _, _ = ax.hist(number_pi_per_spill/n_pot_per_trigger, bins = n_bins, label = "Pions", color = "green", histtype = "step")
-        try:
-            popt, pcov = fit_gaussian(h_pi, bin_centers)
-            plt.plot(n_bins_narrow, gaussian(n_bins_narrow, *popt), '--', color = "green", label = f"Gaussian fit: mean {popt[1]:.2f}, std {popt[2]:.2f}")
-        
-        except:
-            popt  = [0, 0, 0]
-        
-        if max(number_p_per_spill) > 0.01:
-            h_p, _, _ = ax.hist(number_p_per_spill/n_pot_per_trigger, bins = n_bins, label = "Protons", color = "red", histtype = "step")
+            h_e, _, _ = ax.hist(number_e_per_spill/n_pot_per_trigger, bins = n_bins, label = "Electrons", color = "blue", histtype = "step")
             try:
-                popt, pcov = fit_gaussian(h_p, bin_centers)
-                plt.plot(n_bins_narrow, gaussian(n_bins_narrow, *popt), '--', color = "red", label = f"Gaussian fit: mean {popt[1]:.2f}, std {popt[2]:.2f}")
+                popt, pcov = fit_gaussian(h_e, bin_centers)
+                plt.plot(n_bins_narrow, gaussian(n_bins_narrow, *popt), '--', color = "blue", label = f"Electrons: mean {popt[1]:.2f}, std {popt[2]:.2f}")
             except:
                 popt  = [0, 0, 0]
         
-        if max(number_D_per_spill) > 0.01:
+        
+        if max(number_mu_per_spill) > min_fraction:
+        
+            h_mu, _, _ = ax.hist(number_mu_per_spill/n_pot_per_trigger, bins = n_bins, label = "Muons", color = "orange", histtype = "step")
+            try:
+                popt, pcov = fit_gaussian(h_mu, bin_centers)
+                plt.plot(n_bins_narrow, gaussian(n_bins_narrow, *popt), '--', color = "orange", label = f"Muons: mean {popt[1]:.2f}, std {popt[2]:.2f}")
+            
+            except:
+                popt  = [0, 0, 0]
+
+
+        if max(number_pi_per_spill) > min_fraction:
+        
+            h_pi, _, _ = ax.hist(number_pi_per_spill/n_pot_per_trigger, bins = n_bins, label = "Pions", color = "green", histtype = "step")
+            try:
+                popt, pcov = fit_gaussian(h_pi, bin_centers)
+                plt.plot(n_bins_narrow, gaussian(n_bins_narrow, *popt), '--', color = "green", label = f"Pions: mean {popt[1]:.2f}, std {popt[2]:.2f}")
+        
+            except:
+                popt  = [0, 0, 0]
+        
+        if max(number_p_per_spill) > min_fraction:
+            h_p, _, _ = ax.hist(number_p_per_spill/n_pot_per_trigger, bins = n_bins, label = "Protons", color = "red", histtype = "step")
+            try:
+                popt, pcov = fit_gaussian(h_p, bin_centers)
+                plt.plot(n_bins_narrow, gaussian(n_bins_narrow, *popt), '--', color = "red", label = f"Protons: mean {popt[1]:.2f}, std {popt[2]:.2f}")
+            except:
+                popt  = [0, 0, 0]
+        
+        if max(number_D_per_spill) > min_fraction:
             h_D, _, _ = ax.hist(number_D_per_spill/n_pot_per_trigger, bins = n_bins, label = "Deuterium", color = "black", histtype = "step")
             try:
                 popt, pcov = fit_gaussian(h_D, bin_centers)
-                plt.plot(n_bins_narrow, gaussian(n_bins_narrow, *popt), '--', color = "black", label = f"Gaussian fit: mean {popt[1]:.2f}, std {popt[2]:.2f}")
+                plt.plot(n_bins_narrow, gaussian(n_bins_narrow, *popt), '--', color = "black", label = f"Deuterium: mean {popt[1]:.2f}, std {popt[2]:.2f}")
             except:
                 popt = [0, 0, 0]
         
         
-        if max(number_3He_per_spill) > 0.01:
+        if max(number_3He_per_spill) > min_fraction:
             h_3He, _, _ = ax.hist(number_3He_per_spill/n_pot_per_trigger, bins = n_bins, label = "Helium3", color = "magenta", histtype = "step")
             try:
                 popt, pcov = fit_gaussian(h_3He, bin_centers)
-                plt.plot(n_bins_narrow, gaussian(n_bins_narrow, *popt), '--', color = "magenta", label = f"Gaussian fit: mean {popt[1]:.2f}, std {popt[2]:.2f}")
+                plt.plot(n_bins_narrow, gaussian(n_bins_narrow, *popt), '--', color = "magenta", label = f"3He: mean {popt[1]:.2f}, std {popt[2]:.2f}")
             except:
                 popt = [0, 0, 0]
        
